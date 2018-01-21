@@ -1,7 +1,7 @@
 {
     "name": "voxel-generators",
     "homepage": "https://github.com/khrome/voxel-generators",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "main": "voxel-generators.js",
     "description": "Biomes for voxeljs",
     "keywords": [
@@ -23,7 +23,7 @@
     },
     "dependencies": {
         "voxel" : "*",
-        "random-seed" : "*",
+        "seed-random" : "*",
         "perlin" : "*"
     },
     "devDependencies": {},

@@ -1,5 +1,4 @@
 var voxel = require('voxel');
-var SimplexNoise;
 var perlin;
 
 function intersectGenerators(a, b, resolve){
@@ -23,17 +22,20 @@ Generators.intersection = intersectGenerators;
 
 function stringToCharSum(str){
     var total = 0;
-    for (var lcv = 0; lcv < str.length; lcv++) total += alphabet[str[lcv]];
+    for (var lcv = 0; lcv < str.length; lcv++) total += str.charCodeAt(lcv);
     return total;
 }
 
 //needs to tile seamlessly, but not have to maintain state, so it's expensive!
-Generators.SeamlessNoiseFactory = function(subX, subY, subZ, GeneratorClass, lookup){
-    var xLowerNoise = GeneratorClass(stringToCharSum((subX-1)+'|'+subX));
-    var xUpperNoise = GeneratorClass(stringToCharSum(subX+'|'+(subX+1)));
-    var zLowerNoise = GeneratorClass(stringToCharSum((subZ-1)+'|'+subZ));
-    var zUpperNoise = GeneratorClass(stringToCharSum(subZ+'|'+(subZ+1)));
-    var noise = GeneratorClass(stringToCharSum(subX+':'+subZ));
+Generators.SeamlessNoiseFactory = function(seed, GeneratorClass, lower, upper, map){
+    var parts = seed.split('|');
+    var subX = parts[0];
+    var subZ = parts[2];
+    var xLowerNoise = GeneratorClass(stringToCharSum((subX-1)+'|'+subX), lower, upper);
+    var xUpperNoise = GeneratorClass(stringToCharSum(subX+'|'+(subX+1)), lower, upper);
+    var zLowerNoise = GeneratorClass(stringToCharSum((subZ-1)+'|'+subZ), lower, upper);
+    var zUpperNoise = GeneratorClass(stringToCharSum(subZ+'|'+(subZ+1)), lower, upper);
+    var noise = GeneratorClass(stringToCharSum(subX+':'+subZ), lower, upper);
     // need to compute the intersection of 5 noise maps
     // 4 edges and the main map... inefficient
     // lowers are -16, uppers are +16
@@ -46,59 +48,86 @@ Generators.SeamlessNoiseFactory = function(subX, subY, subZ, GeneratorClass, loo
         var zPart;
         if(x < 16){
             xPart =
-                xLowerNoise(x+16, z) * (1.0 - precentX) +
-                noise(x, z) * precentX
+                xLowerNoise(x+16, z) * (1.0 - percentX) +
+                noise(x, z) * percentX
         }else{
             xPart =
-                xUpperNoise(x-16, z) * precentX +
-                noise(x, z) * (1.0 - precentX);
+                xUpperNoise(x-16, z) * percentX +
+                noise(x, z) * (1.0 - percentX);
         }
         if(z < 16){
             zPart =
-                zLowerNoise(x, z+16) * (1.0 - precentZ) +
-                noise(x, z) * precentZ
+                zLowerNoise(x, z+16) * (1.0 - percentZ) +
+                noise(x, z) * percentZ
         }else{
             zPart =
-                zUpperNoise(x, z-16) * precentZ +
-                noise(x, z) * (1.0 - precentZ);
+                zUpperNoise(x, z-16) * percentZ +
+                noise(x, z) * (1.0 - percentZ);
         }
-        return Math.round((xPart+zPart)/2);
+        var groundLevel =  Math.round((xPart+zPart)/2);
+        var result;
+        if(y > groundLevel) result = 0;
+        if(y === groundLevel) result = 1;
+        if(y < groundLevel) result = 2;
+        return map?map(x, y, z, result):result;
     }
 }
 
-Generators.TiledNoiseFactory = function(seed, algorithm, lower, upper){
-    var generator = algorithm(seed);
-    var bottom = lower || 0;
-    var top = upper || 32;
-    var ys = {};
+Generators.TiledNoiseFactory = function(seed, algorithm, lower, upper, map){
+    var noiseAt = algorithm(seed, lower || 0, upper || 32);
     return function(x, y, z){
         var key = x+'|'+z;
-        if(!ys[key]){
-            var rand = generator(x, z); //-1:1 -> 0:1
-            ys[key] = lower + (rand * (upper-lower));
-        }
-        var groundLevel = ys[key];
-        if(y > groundLevel) return 0;
-        if(y === groundLevel) return 1;
-        return 2;
+        var groundLevel = noiseAt(x, z);
+        var result;
+        if(y > groundLevel) result = 0;
+        if(y === groundLevel) result = 1;
+        if(y < groundLevel) result = 2;
+        return map?map(x, y, z, result):result;
     }
 }
 
-var rand = require('random-seed');
+var rand = require('seed-random');
 Generators.Random = {};
 Generators.Random.seed = function(seed){
-    return rand.create(seed);
+    return rand(seed);
 }
 
 var noise = require('perlin').noise;
 
+//var Noise = require('noisejs');
+
 Generators.Noise.perlin = function(){
     var lookup = [];
-    return function(seed){
+    return function(seed, min, max){
+        if(!min) min = 0;
+        if(!max) max = 32;
+        var range = max - min;
         noise.seed(seed);
         for(var x=0; x < 32; x++){
             for(var z=0; z < 32; z++){
-                lookup[x + z*32] = noise.perlin2(x , z);
+                lookup[x + z*32] = min + Math.floor(
+                    ((noise.perlin2(x/50 , z/50)+1)/2) *  range
+                );
+            }
+        }
+        return function(a, b){
+            return lookup[a + b*32];
+        }
+    }
+}
+
+Generators.Noise.simplex = function(){
+    var lookup = [];
+    return function(seed, min, max){
+        if(!min) min = 0;
+        if(!max) max = 32;
+        var range = max - min;
+        noise.seed(seed);
+        for(var x=0; x < 32; x++){
+            for(var z=0; z < 32; z++){
+                lookup[x + z*32] = min + Math.floor(
+                    ((noise.simplex2(x/50 , z/50)+1)/2) *  range
+                );
             }
         }
         return function(a, b){
