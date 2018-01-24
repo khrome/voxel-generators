@@ -1,7 +1,12 @@
 var voxel = require('voxel');
-var perlin;
 
-function intersectGenerators(a, b, resolve){
+//Sphere, Noise, DenseNoise, Checker, Hill, Valley, HillyTerrain
+var Generators = voxel.generator;
+Generators.DenseNoise = Generators['Dense Noise'];
+delete Generators['Dense Noise'];
+Generators.HillyTerrain = Generators['Hilly Terrain'];
+delete Generators['Hilly Terrain'];
+Generators.intersection = function(a, b, resolve){
     return function(x, y, z){
         var resA = a(x, y, z);
         var resB = b(x, y, z);
@@ -12,128 +17,71 @@ function intersectGenerators(a, b, resolve){
     }
 }
 
-//Sphere, Noise, DenseNoise, Checker, Hill, Valley, HillyTerrain
-var Generators = voxel.generator;
-Generators.DenseNoise = Generators['Dense Noise'];
-delete Generators['Dense Noise'];
-Generators.HillyTerrain = Generators['Hilly Terrain'];
-delete Generators['Hilly Terrain'];
-Generators.intersection = intersectGenerators;
-
-function stringToCharSum(str){
-    var total = 0;
-    for (var lcv = 0; lcv < str.length; lcv++) total += str.charCodeAt(lcv);
-    return total;
-}
-
-//needs to tile seamlessly, but not have to maintain state, so it's expensive!
-Generators.SeamlessNoiseFactory = function(seed, GeneratorClass, lower, upper, map){
-    var parts = seed.split('|');
-    var subX = parts[0];
-    var subZ = parts[2];
-    var xLowerNoise = GeneratorClass(stringToCharSum((subX-1)+'|'+subX), lower, upper);
-    var xUpperNoise = GeneratorClass(stringToCharSum(subX+'|'+(subX+1)), lower, upper);
-    var zLowerNoise = GeneratorClass(stringToCharSum((subZ-1)+'|'+subZ), lower, upper);
-    var zUpperNoise = GeneratorClass(stringToCharSum(subZ+'|'+(subZ+1)), lower, upper);
-    var noise = GeneratorClass(stringToCharSum(subX+':'+subZ), lower, upper);
-    // need to compute the intersection of 5 noise maps
-    // 4 edges and the main map... inefficient
-    // lowers are -16, uppers are +16
-    // todo: allow map indexing through an immediate keystore interface
-    return function(x, y, z){
-        //percentage across current half of axis
-        var percentX = x==0?0:x/16;
-        var percentZ = z==0?0:z/16;
-        var xPart;
-        var zPart;
-        if(x < 16){
-            xPart =
-                xLowerNoise(x+16, z) * (1.0 - percentX) +
-                noise(x, z) * percentX
-        }else{
-            xPart =
-                xUpperNoise(x-16, z) * percentX +
-                noise(x, z) * (1.0 - percentX);
+var combinations2D = function(arr){ //omits 0, 0
+    var a;
+    var b;
+    var results = [];
+    var len = arr.length;
+    for(a=0; a < len; a++){
+        for(b=0; b < len; b++){
+            if(! (
+                a === 0 && b === 0
+            )) results.push([arr[a], arr[b]]);
         }
-        if(z < 16){
-            zPart =
-                zLowerNoise(x, z+16) * (1.0 - percentZ) +
-                noise(x, z) * percentZ
-        }else{
-            zPart =
-                zUpperNoise(x, z-16) * percentZ +
-                noise(x, z) * (1.0 - percentZ);
-        }
-        var groundLevel =  Math.round((xPart+zPart)/2);
-        var result;
-        if(y > groundLevel) result = 0;
-        if(y === groundLevel) result = 1;
-        if(y < groundLevel) result = 2;
-        return map?map(x, y, z, result):result;
     }
+    return results;
 }
 
-Generators.TiledNoiseFactory = function(seed, algorithm, lower, upper, map){
-    var noiseAt = algorithm(seed, lower || 0, upper || 32);
-    return function(x, y, z){
-        var key = x+'|'+z;
-        var groundLevel = noiseAt(x, z);
-        var result;
-        if(y > groundLevel) result = 0;
-        if(y === groundLevel) result = 1;
-        if(y < groundLevel) result = 2;
-        return map?map(x, y, z, result):result;
+var allSquareDistances = function(maxDistance){
+    var distances = [];
+    distances.push(0);
+    for(var lcv =1; lcv <= maxDistance; lcv++){
+        distances.push(lcv);
+        distances.push(-1 * lcv);
     }
+    return distances;
+}
+var edgeSquareDistances = function(maxDistance){
+    var distances = [];
+    distances.push(0);
+    for(var lcv =1; lcv <= maxDistance; lcv++){
+        distances.push(lcv);
+        distances.push(-1 * lcv);
+    }
+    distances.distances.filter(function(item){
+        Math.abs(item[0]) === 4 || Math.abs(item[0]) === 4
+    })
+    return distances;
 }
 
-var rand = require('seed-random');
-Generators.Random = {};
-Generators.Random.seed = function(seed){
-    return rand(seed);
-}
-
-var noise = require('perlin').noise;
-
-//var Noise = require('noisejs');
-
-Generators.Noise.perlin = function(){
-    var lookup = [];
-    return function(seed, min, max){
-        if(!min) min = 0;
-        if(!max) max = 32;
-        var range = max - min;
-        noise.seed(seed);
-        for(var x=0; x < 32; x++){
-            for(var z=0; z < 32; z++){
-                lookup[x + z*32] = min + Math.floor(
-                    ((noise.perlin2(x/50 , z/50)+1)/2) *  range
-                );
-            }
-        }
-        return function(a, b){
-            return lookup[a + b*32];
+var relativeToOccurances2D = function(x, z, geometry, locations, tileSize, cb){
+    var pos;
+    var lcv;
+    var test;
+    var xx;
+    var zz;
+    //todo: some wierdness if objects are too close
+    //eventually multi-select or limit closeness
+    for(lcv =0; lcv <= geometry.length; lcv++){
+        xx = x+geometry[lcv][0];
+        zz = z+geometry[lcv][1];
+        test = locations[xx + yy * tileSize] || 0;
+        if(test){
+            if(cb) cb(xx,zz);
+            return test;
         }
     }
 }
 
-Generators.Noise.simplex = function(){
-    var lookup = [];
-    return function(seed, min, max){
-        if(!min) min = 0;
-        if(!max) max = 32;
-        var range = max - min;
-        noise.seed(seed);
-        for(var x=0; x < 32; x++){
-            for(var z=0; z < 32; z++){
-                lookup[x + z*32] = min + Math.floor(
-                    ((noise.simplex2(x/50 , z/50)+1)/2) *  range
-                );
-            }
-        }
-        return function(a, b){
-            return lookup[a + b*32];
-        }
-    }
-}
+Generators.Geometry = {};
+Generators.Geometry.Relative = {};
+
+
+Generators.RelativeGeometry = require('./voxel-relative-geometry');
+Generators.Random = require('./voxel-random');
+Generators.Noise = require('./voxel-noise');
+Generators.TiledNoiseFactory = Generators.Noise.TileFactory;
+Generators.SeamlessNoiseFactory = Generators.Noise.BlendedTileFactory;
+Generators.Objects = require('./voxel-objects');
 
 module.exports = Generators;
