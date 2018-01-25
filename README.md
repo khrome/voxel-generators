@@ -15,7 +15,7 @@ Noise Factories
 ---------------
 Noise factories take 2D Noise algorithms and tile them across the map in a deterministic way
 
-- **.SeamlessNoiseFactory(seed, NoiseClass, lower, upper, mapFn)** : Generates 5 textures per chunk and blends them to create seamless edges and extrudes that in the provided range
+- **.SeamlessNoiseFactory(seed, NoiseClass, lower, upper, mapFn)** : Generates 5 textures per chunk and blends them to create seamless edges(**within** a single biome) and extrudes that in the provided range
 - **.TiledNoiseFactory(seed, NoiseClass, lower, upper, mapFn)** : Generates 1 texture per chunk and extrudes that in the provided range
 
 More docs to come

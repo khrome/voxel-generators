@@ -12,7 +12,8 @@ var Trees = function(options){
         this.options.groundHeight = 32;
     }
     //seedless random... non-deterministic :P (pass one in)
-    if(!this.options.random) this.options.random = require('./random')();
+    if(!this.options.random) throw new Error('options.random is required!');
+    //if(!this.options.random) this.options.random = require('../random')();
     this.trees = [];
     this.maxGround = (this.options.groundHeight||this.options.groundHeightHigh);
 }
@@ -60,8 +61,8 @@ Trees.prototype.buildGenerator = function(randomFn){
         var treeHeight = trees[x + z*32];
         //the trunk & top leaves
         if(value === 0 && treeHeight && treeHeight >= y){
-            if(treeHeight > y) return 22;
-            if(treeHeight = y) return 25;
+            if(treeHeight > y) return 3;
+            if(treeHeight == y) return 4;
         }
         //branches
         var groundHeight;
@@ -76,7 +77,7 @@ Trees.prototype.buildGenerator = function(randomFn){
             y < treeHeight
         ){
             var test = (y-branchHeight) % 3 === 0;// ~2 clumps per tree
-            if(test) return 25;
+            if(test) return 4;
         }
         return value;
     }
