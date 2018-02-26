@@ -13,6 +13,27 @@ var combinations2D = function(arr){ //omits 0, 0
     return results;
 }
 
+var combinations3D = function(arrA, arrB, arrC){
+    if(arrA && arrB && !arrC){
+        arrC = [0];
+    }
+    if(arrA && (!arrB) && (!arrC)){
+        arrB = arrC = arrA;
+    }
+    var a;
+    var b;
+    var c;
+    var results = [];
+    for(a=0; a < arrA.length; a++){
+        for(b=0; b < arrB.length; b++){
+            for(c=0; c < arrC.length; c++){
+                results.push([arrA[a], arrB[b], arrC[c]]);
+            }
+        }
+    }
+    return results;
+}
+
 var allSquareDistances = function(maxDistance){
     var distances = [];
     distances.push(0);
@@ -64,6 +85,63 @@ var relativeToOccurances2D = function(x, z, geometry, locations, tileSize, cb){
 var distanceCache = {};
 
 var RelativeGeometry = {};
+RelativeGeometry.intersection = function(shape1, shape2){
+    var copy = shape.slice(0);
+    shape2.forEach(function(coord){
+        if(shape1.indexOf(coord) === -1) copy.push(coord)
+    })
+};
+RelativeGeometry.cube = function(size, hollow){ //odd cube
+    var newSize = Math.floor(size/2);
+    var all = combinations3D(allSquareDistances(newSize));
+    if(hollow) all = all.filter(function(coords){
+        var xFactor = Math.abs(coords[0]) === newSize;
+        var yFactor = Math.abs(coords[1]) === newSize;
+        var zFactor = Math.abs(coords[2]) === newSize;
+        var result = xFactor || yFactor || zFactor;
+        return result;
+    });
+    return all;
+};
+
+RelativeGeometry.box = function(sizeX, sizeY, sizeZ, hollow){
+    var all = combinations3D(
+        allSquareDistances(sizeX),
+        allSquareDistances(sizeY),
+        allSquareDistances(sizeZ)
+    );
+    if(hollow) return all.filter(function(coords){
+        return
+            Math.abs(coords[0]) === sizeX ||
+            Math.abs(coords[1]) === sizeY ||
+            Math.abs(coords[2]) === sizeZ ;
+    });
+    return all;
+};
+
+RelativeGeometry.sphere = function(radius, hollow){
+    var diameter = 2 * radius;
+    var coords = [];
+    for(var x; x < diameter; x++){
+        for(var y; y < diameter; y++){
+            for(var z; z < diameter; z++){
+                if(x*x+y*y+z*z <= radius*radius){
+                    if(hollow){
+                        if(x*x+y*y+z*z > (radius-1)*(radius-1)){
+                            coords.push([x, y, z]);
+                        }
+                    }else coords.push([x, y, z]);
+                }
+            }
+        }
+    }
+    return x*x+y*y+z*z <= 15*15 ? 1 : 0
+};
+
+RelativeGeometry.ellipse = function(radius, relativeFocus, hollow){
+
+};
+
 var locationOfShapeContainingGenerator = function(relativeShape, locations, tileSize){
     return function(x, z, cb){
         return relativeToOccurances2D(

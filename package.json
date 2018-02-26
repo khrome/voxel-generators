@@ -1,7 +1,7 @@
 {
     "name": "voxel-generators",
     "homepage": "https://github.com/khrome/voxel-generators",
-    "version": "0.0.4",
+    "version": "0.0.5",
     "main": "voxel-generators.js",
     "description": "Single voxel centric generators for voxeljs",
     "keywords": [
@@ -22,9 +22,10 @@
         "url": "git://github.com/khrome/voxel-generators.git"
     },
     "dependencies": {
-        "voxel" : "*",
-        "seed-random" : "*",
-        "perlin" : "*"
+        "extend": "^3.0.1",
+        "perlin": "*",
+        "seed-random": "*",
+        "voxel": "*"
     },
     "devDependencies": {},
     "optionalDependencies": {},
