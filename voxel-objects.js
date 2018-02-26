@@ -1,4 +1,4 @@
-var Objects = {};
+var Objects;
 var extend = require('extend')
 
 var AbstractObjects = function(){
@@ -26,7 +26,7 @@ AbstractObjects.prototype.build = function(configuration){
 };
 
 AbstractObjects.prototype.add = function(configuration){
-    this.objects.push(this.build(configuration));
+    this.objects.push(configuration);
 };
 
 AbstractObjects.prototype.createOptions = function(context, callback){
@@ -45,7 +45,8 @@ AbstractObjects.prototype.getOptions = function(context, callback){
 };
 
 AbstractObjects.prototype.writeInto = function(context, chunk, dontOverwrite){
-    var objects = this.objects;
+    var ob = this;
+    var objects = this.objects.map(function(o){ return ob.build(o, context); });
     this.getOptions(context, function(config){
         var object;
         var g;
@@ -62,7 +63,10 @@ AbstractObjects.prototype.writeInto = function(context, chunk, dontOverwrite){
 }
 
 AbstractObjects.prototype.buildGenerator = function(context){
-    var transformedObjects = this.objects.map(function(object){
+    var ob = this;
+    var transformedObjects = this.objects.map(function(o){
+        return ob.build(o, context);
+    }).map(function(object){
         var min = {};
         var max = {};
         object.forEach(function(coords){
@@ -78,7 +82,7 @@ AbstractObjects.prototype.buildGenerator = function(context){
             bounds : {min:min, max:max}
         }
     });
-    this.getOptions(context.random, function(options){
+    this.getOptions(context, function(options){
         result = function(x, y, z, value){
             if(value) return value;
             var b, g;
@@ -105,7 +109,7 @@ AbstractObjects.prototype.buildGenerator = function(context){
     return result;
 }
 Objects = AbstractObjects;
-Objects.Trees = require('./objects/trees');
+//Objects.Trees = require('./objects/trees');
 
 
 

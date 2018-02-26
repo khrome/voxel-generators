@@ -1,7 +1,8 @@
-var Geometry = require('../voxel-relative-geometry')
+var Geometry = require('../voxel-relative-geometry');
+var Objects = require('../voxel-objects');
 
 //trees predate the AbstractObject so they're special for now
-var Trees = function(options){
+/*var Trees = function(options){
     this.options = options || {};
     if(!this.options.width) this.options.width = 32;
     if(!this.options.height) this.options.height = 32;
@@ -99,33 +100,7 @@ Trees.prototype.writeInto = function(randomFn, chunk, dontOverwrite){
                 }
             }
         }
-        result = function(x, y, z, value){
-            if(value) return value;
-            var treeHeight = trees[x + z*32];
-            //the trunk & top leaves
-            if(value === 0 && treeHeight && treeHeight >= y){
-                if(treeHeight > y) return 3;
-                if(treeHeight == y) return 4;
-            }
-            //branches
-            var groundHeight;
-            treeHeight = getOccurance(x, y, z, function(treeX, treeZ){
-                groundHeight = groundAt(treeX, treeZ, true);
-            });
-            if(!(treeHeight && groundHeight)) return value;
-            var branchHeight = groundHeight + 2;
-            if(
-                (value === 0) && //don't overwite voxels
-                y > branchHeight &&
-                y < treeHeight
-            ){
-                var test = (y-branchHeight) % 3 === 0;// ~2 clumps per tree
-                if(test) return 4;
-            }
-            return value;
-        }
-    })
-    return result;
+    });
 }
 
 Trees.prototype.buildGenerator = function(randomFn){
@@ -133,6 +108,10 @@ Trees.prototype.buildGenerator = function(randomFn){
     var result;
     var ob = this;
     console.log('??');
+    var coords = Geometry.cube(2);
+    coords.forEach(function(coord){
+        v(x+coord[0], y+coord[1], z+coord[2], 4, true);
+    })
     this.createOptions(random, function(groundHeights, trees, lower, upper, treeTops, groundAt){
         var getOccurance = getOccuranceGenerator(trees, ob.options.treeRadius || 1);
         result = function(x, y, z, value){
@@ -165,4 +144,38 @@ Trees.prototype.buildGenerator = function(randomFn){
     return result;
 }
 
-module.exports = Trees;
+
+
+module.exports = Trees;*/
+
+module.exports = Objects.implement({
+    build : function(config, context){
+        if(!(
+            config.x !== undefined &&
+            config.y !== undefined &&
+            config.height !== undefined &&
+            config.z !== undefined
+        )){
+            console.log(config);
+            throw new Error('trees require x, y, z, height');
+        }
+        var base = Math.floor(config.height * 0.5);
+        var variable = Math.floor(context.random()*(config.height-base));
+        var coords = [];
+        var top = base+variable;
+        var offset = Math.floor(context.random()*3);
+        for(var lcv=0; lcv< top; lcv++){
+            if( (lcv-offset)%5 == 0  && lcv > base + offset){
+                coords = Geometry.cube(3, true).map(function(coords){
+                    return [config.x+coords[0], config.y+lcv+coords[1], config.z+coords[2], config.leaves || 4]
+                }).concat(coords);
+            }
+            if(lcv === top-1) coords.push([config.x, config.y+lcv, config.z, config.leaves || 4])
+            else coords.push([config.x, config.y+lcv, config.z, config.trunk || 3])
+        }
+        return coords;
+    },
+    createOptions : function(context, callback){
+        callback(undefined, {});
+    }
+});
