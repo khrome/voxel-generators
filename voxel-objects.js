@@ -104,6 +104,7 @@ AbstractObjects.prototype.buildGenerator = function(context){
                     if(matching[0]) return matching[0][3] || 1;
                 }
             }
+            return value || 0;
         }
     });
     return result;
