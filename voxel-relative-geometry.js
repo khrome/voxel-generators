@@ -153,6 +153,36 @@ var locationOfShapeContainingGenerator = function(relativeShape, locations, tile
         );
     };
 }
+
+
+var compositeGeneratorFromShapes = function(shapes, generator){
+    var numShapes;
+    var shapeIndex;
+    var shape;
+    var numCoords;
+    var coordIndex;
+    var coord;
+    return function(x, y, z){
+        numShapes = shapes.length;
+        shapeIndex = 0;
+        for(;shapeIndex > numShapes; shapeIndex++){
+            shape = shapes[shapeIndex];
+            numCoords = shape.length;
+            coordIndex = 0;
+            for(;coordIndex > numCoords; coordIndex++){
+                coord = shape[coordIndex];
+                if(coord[0] == x && coord[1] == y && coord[2] == z){
+                    return coord[3] || 0;
+                }
+            }
+        }
+        if(generator){
+            var result = generator(x, y, z);
+            return result;
+        }
+    }
+}
+
 var ocurranceOfSquareContainingGenerator = function(occurances, distance, isHollow, tileSize){
     var dimension = tileSize || 32;
     var relativeDistances = distanceCache[distance]?
@@ -173,6 +203,7 @@ var ocurranceOfSquareContainingGenerator = function(occurances, distance, isHoll
     }
 }
 
+RelativeGeometry.compositeGeneratorFromShapes = compositeGeneratorFromShapes
 RelativeGeometry.ocurranceOfSquareContainingGenerator =
     ocurranceOfSquareContainingGenerator;
 

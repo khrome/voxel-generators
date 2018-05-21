@@ -1,6 +1,5 @@
 var Geometry = require('../voxel-relative-geometry');
 var Objects = require('../voxel-objects');
-
 module.exports = Objects.implement({
     build : function(config, context){
         if(!(
