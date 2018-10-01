@@ -1,6 +1,7 @@
 var Geometry = require('../voxel-relative-geometry');
 var Objects = require('../voxel-objects');
 
+
 module.exports = Objects.implement({
     build : function(config, context){
         if(!(
@@ -20,11 +21,29 @@ module.exports = Objects.implement({
         for(var lcv=0; lcv< top; lcv++){
             if( (lcv-offset)%5 == 0  && lcv > base + offset){
                 coords = Geometry.cube(3, true).map(function(coords){
-                    return [config.x+coords[0], config.y+coords[1]+lcv, config.z+coords[2], config.leaves || 4]
+                    return [
+                        config.x + coords[0],
+                        config.y + coords[1] + lcv,
+                        config.z + coords[2],
+                        config.leaves || 4
+                    ];
                 }).concat(coords);
             }
-            if(lcv === top-1) coords.push([config.x, config.y+lcv, config.z, config.leaves || 4])
-            else coords.push([config.x, config.y+lcv, config.z, config.trunk || 3])
+            if(lcv === top-1){
+                coords.push([
+                    config.x,
+                    config.y+lcv,
+                    config.z,
+                    config.leaves || 4
+                ])
+            }else{
+                coords.push([
+                    config.x,
+                    config.y+lcv,
+                    config.z,
+                    config.trunk || 3
+                ])
+            }
         }
         //process.exit();
         return coords;
