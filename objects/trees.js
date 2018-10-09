@@ -45,7 +45,6 @@ module.exports = Objects.implement({
                 ])
             }
         }
-        //process.exit();
         return coords;
     },
     createOptions : function(context, callback){

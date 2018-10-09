@@ -28,7 +28,6 @@
         throw new Error('global testing not supported!');
     }
 }(this, function (mocha, should, Trees, Houses, Random, Generators, GeometryReducer, absolute, relative){
-
     var chunkShouldBeDiverse = function(chunk, range){
         var count=0;
         var seen = [];

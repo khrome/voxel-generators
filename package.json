@@ -1,7 +1,7 @@
 {
     "name": "voxel-generators",
     "homepage": "https://github.com/khrome/voxel-generators",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "main": "voxel-generators.js",
     "description": "Single voxel centric generators for voxeljs",
     "keywords": [

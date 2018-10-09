@@ -7,24 +7,33 @@ var DimensionReducer = function(dimension, size){
     delete this.offsets[dimension];
     this.size = size || 32;
 };
-DimensionReducer.prototype.reduce = function(chunk, reducer){
-    var plane = new Int8Array(this.size*this.size);
-    var dims = Objects.keys(this.offsets);
+DimensionReducer.prototype.reduce = function(chunk, reducer, reverse, type){
+    var plane = new (type || Int8Array)(this.size*this.size);
+    var dims = Object.keys(this.offsets);
     var dimA = this.offsets[dims[0]];
     var dimB = this.offsets[dims[1]];
     var lastBlock;
     var block;
-    var shortCircuit = function(value){
-        shortCircuited = true;
-        return value;
-    }
+    var shortCircuited;
     for(var lcvA=0; lcvA < this.size; lcvA++){
         for(var lcvB=0; lcvB < this.size; lcvB++){
             shortCircuited = false;
             lastBlock = null;
-            for(var lcvC=0; (lcvC < this.size && !shortCircuited); lcvC++){
+            var value
+            var shortCircuit = function(value){
+                shortCircuited = true;
+                lastBlock = value;
+                return value;
+            }
+            var size = this.size;
+            var init = reverse?size-1:0;
+            var mod = reverse?function(n){return n-1;}:function(n){return n+1;};
+            var comp = reverse?function(n){return n >= 0;}:function(n){return n<size;};
+            for(var lcvC=init; (comp(lcvC) && !shortCircuited); lcvC = mod(lcvC)){
+                console.log('??', lcvC)
+                if(shortCircuited) continue;
                 block = chunk[lcvA*dimA + lcvB*dimB + lcvC*this.axis];
-                if(lastBlock) lastBlock = reducer(lastBlock, block, shortCircuit)
+                if(lastBlock !== null) lastBlock = reducer(lastBlock, block, lcvC, shortCircuit)
                 else lastBlock = block;
             }
             plane[lcvA * this.size + lcvB] = lastBlock;
