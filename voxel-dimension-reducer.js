@@ -30,7 +30,6 @@ DimensionReducer.prototype.reduce = function(chunk, reducer, reverse, type){
             var mod = reverse?function(n){return n-1;}:function(n){return n+1;};
             var comp = reverse?function(n){return n >= 0;}:function(n){return n<size;};
             for(var lcvC=init; (comp(lcvC) && !shortCircuited); lcvC = mod(lcvC)){
-                console.log('??', lcvC)
                 if(shortCircuited) continue;
                 block = chunk[lcvA*dimA + lcvB*dimB + lcvC*this.axis];
                 if(lastBlock !== null) lastBlock = reducer(lastBlock, block, lcvC, shortCircuit)
